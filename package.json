@@ -4,6 +4,7 @@
   "description": "DevTinder Backend",
   "main": "index.js",
   "scripts": {
+    "_comment": "To run below script follow the command 'npm start'",
     "start": "node src/app.js",
     "dev": "nodemon src/app.js"
   },
