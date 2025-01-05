@@ -4,6 +4,8 @@ const connectDB = require('./config/databases');
 const User = require("./models/user");
 const Test = require('./models/test');
 const app = express();
+const {validateSignUpData, validateLoginData} = require("./Utilities/validation.js");
+const bcrypt = require("bcrypt");
 connectDB().then(() => {
     console.log("DataBase connection successfully");
     app.listen(3333, () => {
@@ -97,17 +99,46 @@ app.get("/feed", async (req, res) => {
         res.status(400).send("Something went wrong");
     }
 });
-// POST API for creating a new user
-app.post("/signup", async (req, res) => {
-    const userObj = {
-        firstName: "Dhanush",
-        lastName: "Appireddy",
-        emailId: "dhanush@appireddy.com",
-        password: "pass"
+app.post("/login", async (req, res) => {
+    try {
+        // Validation
+        validateLoginData(req);
+        const {email, password} = req.body;
+        console.log(req.body);
+        const user = await User.findOne({email});
+        if(!user) {
+            throw new Error("Invalid Credentials");
+        }
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        if(isValidPassword) {
+            return res.send("Login Successful");
+        } else {
+            throw new Error("Invalid Credentials");
+        }
+    } catch(error) {
+        console.log("Login Error: "+error.message);
+        return res.status(500).send(`Login Error: ${error.message}`);
     }
-    // Creating a new instance of the User model
-    const user = new User(userObj);
-    await user.save();
-    console.log("User created successfully");
-    res.send("User created successfully");
+});
+app.post("/signup", async (req, res) => {
+    try {
+        // Validation
+        validateSignUpData(req);
+        // Encryption of passwords
+        const {firstName, lastName, password, email} = req.body;
+        const passwordHash = await bcrypt.hash(password, 10);
+        // Creating the instance of User
+        const user = new User({
+        firstName: firstName,
+        lastName: lastName,
+        email: email,
+        password: passwordHash
+        });
+        await user.save();
+        res.send("User added successfully");
+    } catch(error) {
+        console.log("Error while SignUp: ", error.message);
+        res.status(500).send(`Error while SignUp: ${error.message}`);
+
+    }
 });
